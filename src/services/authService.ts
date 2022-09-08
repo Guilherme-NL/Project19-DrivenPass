@@ -1,16 +1,18 @@
 import client from "../database/postgres.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+const { sign } = jwt;
+const secretKey = "skljaksdj9983498327453lsldkjf";
 
 async function registerNewUser(email: string, password: string) {
-  await validateEmail(email);
+  await validateEmailForRegistration(email);
   const passwordCrypt = await getPasswordCrypt(password);
   await insertNewUser(email, passwordCrypt);
   return "ok!";
 }
 
-async function validateEmail(email: string) {
+async function validateEmailForRegistration(email: string) {
   const bdEmail = await client.users.findMany({ where: { email } });
-  console.log(bdEmail, " ", email);
   if (bdEmail.length !== 0) {
     throw {
       code: 409,
@@ -30,4 +32,50 @@ async function insertNewUser(email: string, password: string) {
   return "ok!";
 }
 
-export { registerNewUser };
+async function userLogin(email: string, password: string) {
+  const user = await validateEmailForLogin(email);
+  await validatePassword(user.password, password);
+  const token = await getToken(email, password);
+  await insertSession(user.id, token);
+}
+
+async function validateEmailForLogin(email: string) {
+  const user = await client.users.findMany({ where: { email } });
+  if (user.length === 0) {
+    throw {
+      code: 404,
+      message: "This email is not registered in our database!",
+    };
+  }
+  return user[0];
+}
+
+async function validatePassword(passwordCrypt: string, password: string) {
+  const comparePassword = bcrypt.compareSync(password, passwordCrypt);
+
+  if (!comparePassword) {
+    throw { code: 401, message: "password incorrect" };
+  }
+  return "password ok!";
+}
+
+async function getToken(email: string, password: string) {
+  const token = sign(
+    {
+      email,
+      password,
+    },
+    secretKey,
+    {
+      expiresIn: "1y",
+      subject: "1",
+    }
+  );
+  return token;
+}
+
+async function insertSession(id: number, token: string) {
+  await client.sessions.create({ data: { user: { connect: { id } }, token } });
+}
+
+export { registerNewUser, userLogin };
