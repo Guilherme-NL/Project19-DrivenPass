@@ -12,8 +12,8 @@ async function registerNewUser(email: string, password: string) {
 }
 
 async function validateEmailForRegistration(email: string) {
-  const bdEmail = await client.users.findMany({ where: { email } });
-  if (bdEmail.length !== 0) {
+  const bdEmail = await client.users.findFirst({ where: { email } });
+  if (bdEmail) {
     throw {
       code: 409,
       message: "This email is already registered in our database!",
@@ -37,17 +37,18 @@ async function userLogin(email: string, password: string) {
   await validatePassword(user.password, password);
   const token = await getToken(email, password);
   await insertSession(user.id, token);
+  return "Ok!";
 }
 
 async function validateEmailForLogin(email: string) {
-  const user = await client.users.findMany({ where: { email } });
-  if (user.length === 0) {
+  const user = await client.users.findUnique({ where: { email } });
+  if (!user) {
     throw {
       code: 404,
       message: "This email is not registered in our database!",
     };
   }
-  return user[0];
+  return user;
 }
 
 async function validatePassword(passwordCrypt: string, password: string) {
