@@ -60,17 +60,6 @@ async function getAllCredentials() {
   return decryptCredentials;
 }
 
-async function validateCredential(credentialId: string) {
-  const id = Number(credentialId);
-  const credential = await client.credentials.findFirst({ where: { id } });
-  if (!credential) {
-    throw {
-      code: 404,
-      message: "credential does not exist",
-    };
-  }
-}
-
 async function getCredentialsById(credentialId: string, userId: number) {
   const id = Number(credentialId);
   const credential = await client.credentials.findFirst({
@@ -83,10 +72,35 @@ async function getCredentialsById(credentialId: string, userId: number) {
   if (!credential) {
     throw {
       code: 404,
-      message: "The user does not have any registered credentials!",
+      message:
+        "The user does not have any credentials registered whit this id!",
     };
   }
   return decryptCredentials;
 }
 
-export { postCredentials, getCredentials };
+async function deleteCredential(credentialId: string, userId: number) {
+  await validateCredential(credentialId);
+  await getCredentialsById(credentialId, userId);
+  await deleteCredentialById(credentialId);
+  return "deleted!";
+}
+
+async function validateCredential(credentialId: string) {
+  const id = Number(credentialId);
+  const credential = await client.credentials.findFirst({ where: { id } });
+  if (!credential) {
+    throw {
+      code: 404,
+      message: "credential does not exist",
+    };
+  }
+}
+
+async function deleteCredentialById(credentialId: string) {
+  const id = Number(credentialId);
+  await client.credentials.delete({ where: { id } });
+  return "ok!";
+}
+
+export { postCredentials, getCredentials, deleteCredential };

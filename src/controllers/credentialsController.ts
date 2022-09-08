@@ -2,6 +2,7 @@ import { Response, Request } from "express";
 import {
   postCredentials,
   getCredentials,
+  deleteCredential,
 } from "../services/credentialsService.js";
 
 export async function createCredentials(req: Request, res: Response) {
@@ -19,11 +20,24 @@ export async function createCredentials(req: Request, res: Response) {
 }
 
 export async function obtainCredentials(req: Request, res: Response) {
-  let { credentialId } = req.params;
+  const { credentialId } = req.params;
   const { userId } = res.locals.userSession;
   try {
     const credentials = await getCredentials(credentialId, userId);
     res.status(200).send(credentials);
+  } catch (err) {
+    if (err) {
+      res.status(err.code).send(err.message);
+    }
+  }
+}
+
+export async function removeCredentials(req: Request, res: Response) {
+  const { credentialId } = req.params;
+  const { userId } = res.locals.userSession;
+  try {
+    await deleteCredential(credentialId, userId);
+    res.sendStatus(200);
   } catch (err) {
     if (err) {
       res.status(err.code).send(err.message);
