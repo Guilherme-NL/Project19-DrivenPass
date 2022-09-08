@@ -21,4 +21,43 @@ async function insertNote(title: string, note: string, id: number) {
   });
 }
 
-export { postNote };
+async function getNotes(noteId: string, userId: number) {
+  if (noteId) {
+    await validateNote(noteId);
+    return getNotesById(noteId, userId);
+  } else {
+    return await getAllNotes();
+  }
+}
+
+async function validateNote(noteId: string) {
+  const id = Number(noteId);
+  const note = await client.safenotes.findFirst({ where: { id } });
+  if (!note) {
+    throw {
+      code: 404,
+      message: "note does not exist",
+    };
+  }
+}
+
+async function getAllNotes() {
+  const notes = await client.safenotes.findMany();
+  return notes;
+}
+
+async function getNotesById(noteId: string, userId: number) {
+  const id = Number(noteId);
+  const note = await client.safenotes.findFirst({
+    where: { id, userId },
+  });
+  if (!note) {
+    throw {
+      code: 404,
+      message: "The user does not have any note registered whit this id!",
+    };
+  }
+  return note;
+}
+
+export { postNote, getNotes };

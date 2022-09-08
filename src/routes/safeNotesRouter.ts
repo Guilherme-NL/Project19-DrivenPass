@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { createNotes } from "../controllers/safeNotesController.js";
+import {
+  createNotes,
+  obtainNotes,
+} from "../controllers/safeNotesController.js";
 import { validateToken } from "../middlewares/validateAuthorization.js";
 import { validateSchemaMiddleware } from "../middlewares/validateSchemaMiddleware.js";
 import noteSchema from "../schemas/safenotesSchema.js";
@@ -12,5 +15,6 @@ notesRouter.post(
   validateSchemaMiddleware(noteSchema),
   createNotes
 );
+notesRouter.get("/notes/:noteId?", validateToken, obtainNotes);
 
 export default notesRouter;
