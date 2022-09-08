@@ -53,7 +53,11 @@ async function getCredentials(credentialId: string, userId: number) {
 
 async function getAllCredentials() {
   const credentials = await client.credentials.findMany();
-  return credentials;
+  const decryptCredentials = [...credentials];
+  decryptCredentials.map((e) => {
+    e.password = cryptr.decrypt(e.password);
+  });
+  return decryptCredentials;
 }
 
 async function validateCredential(credentialId: string) {
@@ -69,16 +73,20 @@ async function validateCredential(credentialId: string) {
 
 async function getCredentialsById(credentialId: string, userId: number) {
   const id = Number(credentialId);
-  const credential = await client.credentials.findMany({
+  const credential = await client.credentials.findFirst({
     where: { id, userId },
   });
-  if (credential.length === 0) {
+  const decryptCredentials = {
+    ...credential,
+    password: cryptr.decrypt(credential.password),
+  };
+  if (!credential) {
     throw {
       code: 404,
       message: "The user does not have any registered credentials!",
     };
   }
-  return credential;
+  return decryptCredentials;
 }
 
 export { postCredentials, getCredentials };
