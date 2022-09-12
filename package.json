@@ -30,7 +30,6 @@
     "jsonwebtoken": "^8.5.1",
     "nodemon": "^2.0.19",
     "pg": "^8.8.0",
-    "tsc": "^2.0.4",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
