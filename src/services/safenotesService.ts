@@ -14,6 +14,7 @@ async function postNote(title: string, note: string, userId: number) {
 
 async function validateTitle(title: string) {
   const note = await findTitle(title);
+  console.log(title, note);
   if (note) {
     throw {
       code: 409,

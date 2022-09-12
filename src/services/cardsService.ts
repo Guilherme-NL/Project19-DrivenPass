@@ -107,7 +107,7 @@ async function validateCard(cardId: string, userId: number) {
       message: "card does not exist",
     };
   }
-  const userCards = await findCardsByUserId(userId);
+  const userCards = await findCardsByIds(cardId, userId);
   if (!userCards) {
     throw {
       code: 404,

@@ -1,7 +1,7 @@
 import client from "../database/postgres.js";
 
 async function findTitle(title: string) {
-  const note = await client.credentials.findFirst({ where: { title } });
+  const note = await client.safenotes.findFirst({ where: { title } });
   return note;
 }
 
