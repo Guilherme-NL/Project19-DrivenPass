@@ -1,6 +1,10 @@
-import client from "../database/postgres.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import {
+  findEmail,
+  insertNewUser,
+  insertSession,
+} from "../repositories/authRepositorie.js";
 const { sign } = jwt;
 const secretKey = "skljaksdj9983498327453lsldkjf";
 
@@ -12,7 +16,7 @@ async function registerNewUser(email: string, password: string) {
 }
 
 async function validateEmailForRegistration(email: string) {
-  const bdEmail = await client.users.findFirst({ where: { email } });
+  const bdEmail = await findEmail(email);
   if (bdEmail) {
     throw {
       code: 409,
@@ -27,11 +31,6 @@ async function getPasswordCrypt(password: string) {
   return passwordCrypt;
 }
 
-async function insertNewUser(email: string, password: string) {
-  await client.users.create({ data: { email, password } });
-  return "ok!";
-}
-
 async function userLogin(email: string, password: string) {
   const user = await validateEmailForLogin(email);
   await validatePassword(user.password, password);
@@ -41,7 +40,7 @@ async function userLogin(email: string, password: string) {
 }
 
 async function validateEmailForLogin(email: string) {
-  const user = await client.users.findUnique({ where: { email } });
+  const user = await findEmail(email);
   if (!user) {
     throw {
       code: 404,
@@ -73,10 +72,6 @@ async function getToken(email: string, password: string) {
     }
   );
   return token;
-}
-
-async function insertSession(id: number, token: string) {
-  await client.sessions.create({ data: { user: { connect: { id } }, token } });
 }
 
 export { registerNewUser, userLogin };

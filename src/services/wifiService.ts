@@ -1,4 +1,10 @@
-import client from "../database/postgres.js";
+import {
+  findWifi,
+  findWifiById,
+  findWifiByIds,
+  insertWifi,
+  deleteWifiById,
+} from "../repositories/wifiRepositorie.js";
 import Cryptr from "cryptr";
 
 const cryptr = new Cryptr("myTotallySecretKey");
@@ -6,10 +12,6 @@ const cryptr = new Cryptr("myTotallySecretKey");
 async function postWifi(title: string, password: string, userId: number) {
   const passwordHash = await passwordCrypt(password);
   await insertWifi(title, passwordHash, userId);
-}
-
-async function insertWifi(title: string, password: string, userId: number) {
-  await client.wifi.create({ data: { title, password, userId } });
 }
 
 async function passwordCrypt(password: string) {
@@ -27,7 +29,7 @@ async function getWifi(wifiId: string, userId: number) {
 }
 
 async function getAllWifi(userId: number) {
-  const wifi = await client.wifi.findMany({ where: { userId } });
+  const wifi = await findWifi(userId);
   const decryptWifi = [...wifi];
   decryptWifi.map((e) => {
     e.password = cryptr.decrypt(e.password);
@@ -36,10 +38,7 @@ async function getAllWifi(userId: number) {
 }
 
 async function getWifiById(wifiId: string, userId: number) {
-  const id = Number(wifiId);
-  const wifi = await client.wifi.findFirst({
-    where: { id, userId },
-  });
+  const wifi = await findWifiByIds(wifiId, userId);
   if (!wifi) {
     throw {
       code: 404,
@@ -54,15 +53,14 @@ async function getWifiById(wifiId: string, userId: number) {
 }
 
 async function validateWifi(wifiId: string, userId: number) {
-  const id = Number(wifiId);
-  const wifi = await client.wifi.findFirst({ where: { id } });
+  const wifi = await findWifiById(wifiId);
   if (!wifi) {
     throw {
       code: 404,
       message: "wifi does not exist",
     };
   }
-  const userWifi = await client.wifi.findFirst({ where: { id, userId } });
+  const userWifi = await findWifiByIds(wifiId, userId);
   if (!userWifi) {
     throw {
       code: 404,
@@ -76,12 +74,6 @@ async function deleteWifi(wifiId: string, userId: number) {
   await getWifiById(wifiId, userId);
   await deleteWifiById(wifiId);
   return "deleted!";
-}
-
-async function deleteWifiById(wifiId: string) {
-  const id = Number(wifiId);
-  await client.wifi.delete({ where: { id } });
-  return "ok!";
 }
 
 export { postWifi, getWifi, deleteWifi };

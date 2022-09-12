@@ -1,4 +1,11 @@
-import client from "../database/postgres.js";
+import {
+  insertCard,
+  findCardsByUserId,
+  findCardsById,
+  findCardsByIds,
+  deleteCardById,
+  findTitle,
+} from "../repositories/cardsRepositorie.js";
 import Cryptr from "cryptr";
 
 const cryptr = new Cryptr("myTotallySecretKey");
@@ -31,11 +38,11 @@ async function postCards(
 }
 
 async function validateTitle(title: string) {
-  const card = await client.cards.findFirst({ where: { title } });
+  const card = await findTitle(title);
   if (card) {
     throw {
       code: 409,
-      message: "A safe note with the same name already exists!",
+      message: "A card with the same name already exists!",
     };
   }
 }
@@ -50,32 +57,6 @@ async function cvcCrypt(cvc: string) {
   return cvcHash;
 }
 
-async function insertCard(
-  title: string,
-  number: string,
-  name: string,
-  cvc: string,
-  expiration: string,
-  password: string,
-  isVirtual: boolean,
-  type: string,
-  id: number
-) {
-  await client.cards.create({
-    data: {
-      title,
-      number,
-      name,
-      cvc,
-      expiration,
-      password,
-      isVirtual,
-      type,
-      user: { connect: { id } },
-    },
-  });
-}
-
 async function getCards(cardId: string, userId: number) {
   if (cardId) {
     await validateCard(cardId, userId);
@@ -86,7 +67,7 @@ async function getCards(cardId: string, userId: number) {
 }
 
 async function getAllCards(userId: number) {
-  const cards = await client.cards.findMany({ where: { userId } });
+  const cards = await findCardsByUserId(userId);
   const decryptCards = [...cards];
   decryptCards.map((e) => {
     e.password = cryptr.decrypt(e.password);
@@ -96,10 +77,7 @@ async function getAllCards(userId: number) {
 }
 
 async function getCardsById(cardId: string, userId: number) {
-  const id = Number(cardId);
-  const card = await client.cards.findFirst({
-    where: { id, userId },
-  });
+  const card = await findCardsByIds(cardId, userId);
   const decryptCards = {
     ...card,
     password: cryptr.decrypt(card.password),
@@ -122,27 +100,20 @@ async function deleteCard(cardId: string, userId: number) {
 }
 
 async function validateCard(cardId: string, userId: number) {
-  const id = Number(cardId);
-  const card = await client.cards.findFirst({ where: { id } });
+  const card = await findCardsById(cardId);
   if (!card) {
     throw {
       code: 404,
       message: "card does not exist",
     };
   }
-  const userCards = await client.cards.findFirst({ where: { id, userId } });
+  const userCards = await findCardsByUserId(userId);
   if (!userCards) {
     throw {
       code: 404,
       message: "The card does not belong to this user",
     };
   }
-}
-
-async function deleteCardById(cardId: string) {
-  const id = Number(cardId);
-  await client.cards.delete({ where: { id } });
-  return "ok!";
 }
 
 export { postCards, getCards, deleteCard };

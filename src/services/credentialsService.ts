@@ -1,5 +1,12 @@
-import client from "../database/postgres.js";
 import Cryptr from "cryptr";
+import {
+  findTitle,
+  insertCredentials,
+  findCredentialsByUserId,
+  deleteCredentialById,
+  findCredentialsById,
+  findCredentialsByIds,
+} from "../repositories/credentialRepositorie.js";
 
 const cryptr = new Cryptr("myTotallySecretKey");
 
@@ -16,7 +23,7 @@ async function postCredentials(
 }
 
 async function validateTitle(title: string) {
-  const credentials = await client.credentials.findFirst({ where: { title } });
+  const credentials = await findTitle(title);
   if (credentials) {
     throw {
       code: 409,
@@ -30,18 +37,6 @@ async function passwordCrypt(password: string) {
   return passwordHash;
 }
 
-async function insertCredentials(
-  title: string,
-  url: string,
-  username: string,
-  password: string,
-  id: number
-) {
-  await client.credentials.create({
-    data: { title, url, username, password, user: { connect: { id } } },
-  });
-}
-
 async function getCredentials(credentialId: string, userId: number) {
   if (credentialId) {
     await validateCredential(credentialId, userId);
@@ -52,7 +47,7 @@ async function getCredentials(credentialId: string, userId: number) {
 }
 
 async function getAllCredentials(userId: number) {
-  const credentials = await client.credentials.findMany({ where: { userId } });
+  const credentials = await findCredentialsByUserId(userId);
   const decryptCredentials = [...credentials];
   decryptCredentials.map((e) => {
     e.password = cryptr.decrypt(e.password);
@@ -61,10 +56,7 @@ async function getAllCredentials(userId: number) {
 }
 
 async function getCredentialsById(credentialId: string, userId: number) {
-  const id = Number(credentialId);
-  const credential = await client.credentials.findFirst({
-    where: { id, userId },
-  });
+  const credential = await findCredentialsByIds(credentialId, userId);
   const decryptCredentials = {
     ...credential,
     password: cryptr.decrypt(credential.password),
@@ -87,29 +79,20 @@ async function deleteCredential(credentialId: string, userId: number) {
 }
 
 async function validateCredential(credentialId: string, userId: number) {
-  const id = Number(credentialId);
-  const credential = await client.credentials.findFirst({ where: { id } });
+  const credential = await findCredentialsById(credentialId);
   if (!credential) {
     throw {
       code: 404,
       message: "credential does not exist",
     };
   }
-  const userCredentials = await client.credentials.findFirst({
-    where: { id, userId },
-  });
+  const userCredentials = await findCredentialsByIds(credentialId, userId);
   if (!userCredentials) {
     throw {
       code: 404,
       message: "The credential does not belong to this user",
     };
   }
-}
-
-async function deleteCredentialById(credentialId: string) {
-  const id = Number(credentialId);
-  await client.credentials.delete({ where: { id } });
-  return "ok!";
 }
 
 export { postCredentials, getCredentials, deleteCredential };

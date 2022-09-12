@@ -1,4 +1,11 @@
-import client from "../database/postgres.js";
+import {
+  findTitle,
+  insertNote,
+  getAllNotes,
+  findNotesByIds,
+  findNotesById,
+  deleteNotesById,
+} from "../repositories/safeNotesRepositorie.js";
 
 async function postNote(title: string, note: string, userId: number) {
   await validateTitle(title);
@@ -6,19 +13,13 @@ async function postNote(title: string, note: string, userId: number) {
 }
 
 async function validateTitle(title: string) {
-  const note = await client.safenotes.findFirst({ where: { title } });
+  const note = await findTitle(title);
   if (note) {
     throw {
       code: 409,
       message: "A safe note with the same name already exists!",
     };
   }
-}
-
-async function insertNote(title: string, note: string, id: number) {
-  await client.safenotes.create({
-    data: { title, note, user: { connect: { id } } },
-  });
 }
 
 async function getNotes(noteId: string, userId: number) {
@@ -30,16 +31,8 @@ async function getNotes(noteId: string, userId: number) {
   }
 }
 
-async function getAllNotes(userId: number) {
-  const notes = await client.safenotes.findMany({ where: { userId } });
-  return notes;
-}
-
 async function getNotesById(noteId: string, userId: number) {
-  const id = Number(noteId);
-  const note = await client.safenotes.findFirst({
-    where: { id, userId },
-  });
+  const note = await findNotesByIds(noteId, userId);
   if (!note) {
     throw {
       code: 404,
@@ -57,27 +50,20 @@ async function deleteNote(noteId: string, userId: number) {
 }
 
 async function validateNote(noteId: string, userId: number) {
-  const id = Number(noteId);
-  const note = await client.safenotes.findFirst({ where: { id } });
+  const note = await findNotesById(noteId);
   if (!note) {
     throw {
       code: 404,
       message: "note does not exist",
     };
   }
-  const userNotes = await client.safenotes.findFirst({ where: { id, userId } });
+  const userNotes = await findNotesByIds(noteId, userId);
   if (!userNotes) {
     throw {
       code: 404,
       message: "The note does not belong to this user",
     };
   }
-}
-
-async function deleteNotesById(noteId: string) {
-  const id = Number(noteId);
-  await client.safenotes.delete({ where: { id } });
-  return "ok!";
 }
 
 export { postNote, getNotes, deleteNote };
