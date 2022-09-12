@@ -17,7 +17,8 @@ model Users {
   sessions    Sessions[]
   credentials Credentials[]
   safenotes   Safenotes[]
-  cards Cards[]
+  cards       Cards[]
+  wifi        Wifi[]
 }
 
 model Sessions {
@@ -46,15 +47,23 @@ model Safenotes {
 }
 
 model Cards {
-  id     Int    @id @default(autoincrement())
-  title String
-  number String
-  name String
-  cvc String
+  id         Int     @id @default(autoincrement())
+  title      String
+  number     String
+  name       String
+  cvc        String
   expiration String
+  password   String
+  isVirtual  Boolean
+  type       String
+  user       Users   @relation(fields: [userId], references: [id])
+  userId     Int
+}
+
+model Wifi {
+  id       Int    @id @default(autoincrement())
+  title    String
   password String
-  isVirtual Boolean
-  type String
-  user   Users  @relation(fields: [userId], references: [id])
-  userId Int
+  user     Users  @relation(fields: [userId], references: [id])
+  userId   Int
 }
