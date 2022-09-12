@@ -44,15 +44,15 @@ async function insertCredentials(
 
 async function getCredentials(credentialId: string, userId: number) {
   if (credentialId) {
-    await validateCredential(credentialId);
+    await validateCredential(credentialId, userId);
     return getCredentialsById(credentialId, userId);
   } else {
-    return await getAllCredentials();
+    return await getAllCredentials(userId);
   }
 }
 
-async function getAllCredentials() {
-  const credentials = await client.credentials.findMany();
+async function getAllCredentials(userId: number) {
+  const credentials = await client.credentials.findMany({ where: { userId } });
   const decryptCredentials = [...credentials];
   decryptCredentials.map((e) => {
     e.password = cryptr.decrypt(e.password);
@@ -80,19 +80,28 @@ async function getCredentialsById(credentialId: string, userId: number) {
 }
 
 async function deleteCredential(credentialId: string, userId: number) {
-  await validateCredential(credentialId);
+  await validateCredential(credentialId, userId);
   await getCredentialsById(credentialId, userId);
   await deleteCredentialById(credentialId);
   return "deleted!";
 }
 
-async function validateCredential(credentialId: string) {
+async function validateCredential(credentialId: string, userId: number) {
   const id = Number(credentialId);
   const credential = await client.credentials.findFirst({ where: { id } });
   if (!credential) {
     throw {
       code: 404,
       message: "credential does not exist",
+    };
+  }
+  const userCredentials = await client.credentials.findFirst({
+    where: { id, userId },
+  });
+  if (!userCredentials) {
+    throw {
+      code: 404,
+      message: "The credential does not belong to this user",
     };
   }
 }

@@ -23,15 +23,15 @@ async function insertNote(title: string, note: string, id: number) {
 
 async function getNotes(noteId: string, userId: number) {
   if (noteId) {
-    await validateNote(noteId);
+    await validateNote(noteId, userId);
     return getNotesById(noteId, userId);
   } else {
-    return await getAllNotes();
+    return await getAllNotes(userId);
   }
 }
 
-async function getAllNotes() {
-  const notes = await client.safenotes.findMany();
+async function getAllNotes(userId: number) {
+  const notes = await client.safenotes.findMany({ where: { userId } });
   return notes;
 }
 
@@ -50,19 +50,26 @@ async function getNotesById(noteId: string, userId: number) {
 }
 
 async function deleteNote(noteId: string, userId: number) {
-  await validateNote(noteId);
+  await validateNote(noteId, userId);
   await getNotesById(noteId, userId);
   await deleteNotesById(noteId);
   return "deleted!";
 }
 
-async function validateNote(noteId: string) {
+async function validateNote(noteId: string, userId: number) {
   const id = Number(noteId);
   const note = await client.safenotes.findFirst({ where: { id } });
   if (!note) {
     throw {
       code: 404,
       message: "note does not exist",
+    };
+  }
+  const userNotes = await client.safenotes.findFirst({ where: { id, userId } });
+  if (!userNotes) {
+    throw {
+      code: 404,
+      message: "The note does not belong to this user",
     };
   }
 }
