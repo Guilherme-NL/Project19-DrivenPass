@@ -74,7 +74,75 @@ async function insertCard(
       user: { connect: { id } },
     },
   });
-  console.log("ok!");
 }
 
-export { postCards };
+async function getCards(cardId: string, userId: number) {
+  if (cardId) {
+    await validateCard(cardId, userId);
+    return getCardsById(cardId, userId);
+  } else {
+    return await getAllCards(userId);
+  }
+}
+
+async function getAllCards(userId: number) {
+  const cards = await client.cards.findMany({ where: { userId } });
+  const decryptCards = [...cards];
+  decryptCards.map((e) => {
+    e.password = cryptr.decrypt(e.password);
+    e.cvc = cryptr.decrypt(e.cvc);
+  });
+  return decryptCards;
+}
+
+async function getCardsById(cardId: string, userId: number) {
+  const id = Number(cardId);
+  const card = await client.cards.findFirst({
+    where: { id, userId },
+  });
+  const decryptCards = {
+    ...card,
+    password: cryptr.decrypt(card.password),
+    cvc: cryptr.decrypt(card.cvc),
+  };
+  if (!card) {
+    throw {
+      code: 404,
+      message: "The user does not have any cards registered whit this id!",
+    };
+  }
+  return decryptCards;
+}
+
+async function deleteCard(cardId: string, userId: number) {
+  await validateCard(cardId, userId);
+  await getCardsById(cardId, userId);
+  await deleteCardById(cardId);
+  return "deleted!";
+}
+
+async function validateCard(cardId: string, userId: number) {
+  const id = Number(cardId);
+  const card = await client.cards.findFirst({ where: { id } });
+  if (!card) {
+    throw {
+      code: 404,
+      message: "card does not exist",
+    };
+  }
+  const userCards = await client.cards.findFirst({ where: { id, userId } });
+  if (!userCards) {
+    throw {
+      code: 404,
+      message: "The card does not belong to this user",
+    };
+  }
+}
+
+async function deleteCardById(cardId: string) {
+  const id = Number(cardId);
+  await client.cards.delete({ where: { id } });
+  return "ok!";
+}
+
+export { postCards, getCards, deleteCard };
